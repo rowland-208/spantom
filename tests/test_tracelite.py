@@ -7,7 +7,7 @@ import pytest
 from spantom import SP
 
 
-class TraceliteTestException(Exception):
+class SpantomTestException(Exception):
     pass
 
 
@@ -38,7 +38,7 @@ def test_SP():
         @SP.span("bar-test-name")
         def bar(x):
             SP.tag({"bar_input": x + "-bar"})
-            raise TraceliteTestException()
+            raise SpantomTestException()
 
         @SP.span()
         def foo(x):
@@ -48,7 +48,7 @@ def test_SP():
 
         start = time.time()
         for _ in range(nsamples):
-            with pytest.raises(TraceliteTestException):
+            with pytest.raises(SpantomTestException):
                 foo("test")
         end = time.time()
         total_runtime = end - start

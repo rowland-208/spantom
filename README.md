@@ -4,7 +4,21 @@
 
 Spantom is a python package for simple local tracing.
 
-To get started try this example:
+Spantom spans can use a context manager. Span tags are associated with the span they are created in.
+```python
+from spantom import SP
+
+SP.init()
+
+for x in range(10):
+    with SP.span("foo"):
+        SP.tag({"index": x})
+        print("foo")
+
+print(SP.summary())
+```
+
+Or spans can be attached to functions.
 ```python
 from spantom import SP
 
@@ -15,54 +29,69 @@ def foo(x):
     SP.tag({"foo_input": x})
     return "foo"
 
-with SP.span("bar"):
-    for x in range(10):
-        foo(x)
+for x in range(10):
+    foo(x)
 
 print(SP.summary())
 ```
 
-Spans are saved to a sqlite database.
-The default database is `/tmp/spantom.db`,
-but you can specify a different path at init:
-```
-SP.init("/path/to/my_spans.db")
-```
-
-A typical use case would be to capture metrics from a for loop:
+A typical use case would be to capture metrics from a for loop.
 ```python
 @SP.span()
-def my_slow_function(x):
+def slow_function(x):
+    # calculate something
     ...
     
     @SP.tag({"intermediate_result": y})
     
+    #finish up
     ...
 
 for i in range(1000):
-    my_slow_function(i)
+    with SP.span("outer_loop"):
+        SP.tag({"index": i})
+        
+        # do something slow
+        ...
+
+        SP.tag({"value": value})
+
+        slow_function(value)
+
+        SP.tag({"threshold_exceeded": x > threshold})
+
+        # finish up
+        ...
 ```
 
-When a function is tagged with span Tracelite will record the start and end time of the function call.
-This allows you to measure function durations and find bottlenecks in your code.
+Spantom will record the start and end time of each loop, and of each call to slow_function.
+It will record the dictionary values you tagged with SP.tag and associate them with the corresponding span.
+These values are stored in a sqlite database where you can analyze runtimes and correlations between tags.
 
-Additionally span tags are a powerful mechanism to record arbitrary metadata about the function call.
-The tag keys and values can be any strings.
-This allows you to capture metrics, parameters, or any other relevant information.
-
-Tracelite comes with a simple viewer to query and plot the spans.
-To use the viewer, install spantom with the dashboard option:
+Try the spantom dashboard to get started analyzing spans.
+It can be installed with pip options.
 ```bash
 pip install spantom[dashboard]
 ```
 
-Then launch the viewer:
+To launch the dashboard:
 ```bash
-spantom --db-path /path/to/my_spans.db
+spantom
 ```
 ![Sample image](https://github.com/rowland-208/spantom/blob/main/etc/dashboard.png?raw=True)
 
-Or you can query the spans manually using sqlite3.
+Spans are saved to a sqlite database.
+The default database is `/tmp/spantom.db`.
+You can configure the database path by setting the SPANTOM_DB environment variable,
+or by passing a path to SP.init().
+
+You can specify a different database path for the dashboard:
+```bash
+spantom --db-path /path/to/my_spans.db
+```
+
+I use the spantom dashboard for quick analysis of spans.
+For more in depth analysis, you can use the sqlite database directly.
 This works well in combination with pandas.
 ```python
 import sqlite3
@@ -76,6 +105,6 @@ df_spans = pd.read_sql_query("SELECT * FROM spans", self.conn)
 df_tags = pd.read_sql_query("SELECT * FROM span_tags", self.conn)
 ```
 
-A Tracelite database contains two tables:
-- `spans`: Contains the span data: id, name, start, and duration
+A Spantom database contains two tables:
+- `spans`: Contains the span data:id, name, start, and duration
 - `span_tags`: Contains tags associated with spans: id, span_id, key, value
