@@ -15,6 +15,10 @@ def foo(x):
     SP.tag({"foo_input": x})
     return "foo"
 
+with SP.span("bar"):
+    for x in range(10):
+        foo(x)
+
 print(SP.summary())
 ```
 

@@ -88,3 +88,18 @@ def test_SP():
         assert SP._tls.curs.execute("SELECT COUNT(*) FROM span_tags").fetchall() == [
             (0,)
         ]
+
+        # check that context manager works
+        with SP.span("context-test"):
+            SP.tag({"context_key": "context_value"})
+
+        assert SP._tls.curs.execute("SELECT COUNT(*) FROM spans").fetchall() == [(1,)]
+        assert SP._tls.curs.execute("SELECT COUNT(*) FROM span_tags").fetchall() == [
+            (1,)
+        ]
+        assert SP._tls.curs.execute("SELECT name FROM spans").fetchall() == [
+            ("context-test",)
+        ]
+        assert SP._tls.curs.execute("SELECT key, value FROM span_tags").fetchall() == [
+            ("context_key", "context_value"),
+        ]

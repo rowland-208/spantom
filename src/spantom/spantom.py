@@ -6,6 +6,40 @@ from typing import Optional
 DEFAULT_DB = "/tmp/spantom.db"
 
 
+class SpanContext:
+    def __init__(self, session, name: Optional[str] = None):
+        self.session = session
+        self.name = name
+        self.start_time = None
+
+    def __call__(self, func):
+        if self.name is None:
+            self.name = func.__name__
+
+        def inner(*args, **kwargs):
+            self.__enter__()
+            try:
+                result = func(*args, **kwargs)
+            finally:
+                self.__exit__(None, None, None)
+
+            return result
+
+        return inner
+
+    def __enter__(self):
+        self.parent_tags = self.session.tags
+        self.session.tags = dict()
+        self.start_time = time.time()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        end_time = time.time()
+        duration = end_time - self.start_time
+        self.session.write(self.name or "anonymous_span", self.start_time, duration)
+        self.session.tags = self.parent_tags
+
+
 class SpantomSession:
     def __init__(self, path: str):
         self.tags = {}
@@ -57,25 +91,7 @@ class SpantomSession:
         self.tags.clear()
 
     def span(self, name: Optional[str] = None):
-        def wrapper(func):
-            def inner(*args, **kwargs):
-                parent_tags, self.tags = self.tags, dict()
-
-                start_time = time.time()
-
-                try:
-                    result = func(*args, **kwargs)
-                finally:
-                    end_time = time.time()
-                    duration = end_time - start_time
-                    self.write(name or func.__name__, start_time, duration)
-                    self.tags = parent_tags
-
-                return result
-
-            return inner
-
-        return wrapper
+        return SpanContext(self, name)
 
     def clear(self):
         self.tags.clear()
