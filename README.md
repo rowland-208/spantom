@@ -1,9 +1,3 @@
-<style>
-body {
-    background-color: rgba(247, 240, 231, 1);
-}
-</style>
-
 <div align="center">
   <img src="https://github.com/rowland-208/spantom/blob/main/etc/logo.png?raw=True" alt="logo" width="600">
 </div>
