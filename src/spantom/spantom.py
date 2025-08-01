@@ -1,4 +1,5 @@
 import atexit
+import os
 import time
 import sqlite3
 from typing import Optional
@@ -123,24 +124,5 @@ class SpantomSession:
         }
 
 
-class SP:
-    @classmethod
-    def tag(cls, new_tags: dict):
-        cls._tls.tag(new_tags)
-
-    @classmethod
-    def span(cls, name: Optional[str] = None):
-        return cls._tls.span(name)
-
-    @classmethod
-    def init(cls, path: str = DEFAULT_DB):
-        cls._tls = SpantomSession(path)
-        atexit.register(cls._tls.__exit__, None, None, None)
-
-    @classmethod
-    def clear(cls):
-        cls._tls.clear()
-
-    @classmethod
-    def summary(cls):
-        return cls._tls.summary()
+SP = SpantomSession(os.environ.get("SPANTOM_DB", DEFAULT_DB))
+atexit.register(SP.__exit__, None, None, None)
