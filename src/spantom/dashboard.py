@@ -30,7 +30,7 @@ class SpantomApp:
     def __init__(self, db_path=DEFAULT_DB):
         self.db_path = db_path
         # Embed CSS directly in the app
-        external_stylesheets = [dbc.themes.FLASPY]
+        external_stylesheets = [dbc.themes.FLATLY]
         self.app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
         # Add custom CSS
